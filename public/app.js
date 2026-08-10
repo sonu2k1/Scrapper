@@ -323,6 +323,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (exportModal) exportModal.classList.remove('active');
   }
 
+  // Expose globally for inline onclick fallbacks
+  window.openExportModal = openExportModal;
+  window.closeExportModal = closeExportModal;
+
   if (btnDownloadOutput) {
     btnDownloadOutput.addEventListener('click', () => openExportModal('output'));
   }

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=2.1" />
 </head>
 <body>
   <div class="background-globes">
@@ -89,11 +89,11 @@
         <div class="download-section">
           <h3>Downloads & Reset</h3>
           <div class="download-buttons">
-            <button type="button" class="btn btn-success" id="btnDownloadOutput">
+            <button type="button" class="btn btn-success" id="btnDownloadOutput" onclick="window.openExportModal && window.openExportModal('output')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               Download Output Results
             </button>
-            <button type="button" class="btn btn-outline" id="btnDownloadFailed">
+            <button type="button" class="btn btn-outline" id="btnDownloadFailed" onclick="window.openExportModal && window.openExportModal('failed')">
               Download Failed URLs
             </button>
             <button type="button" class="btn btn-warning" id="btnResetOutput">
@@ -266,6 +266,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.1"></script>
 </body>
 </html>
