@@ -301,6 +301,66 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalBtnConfirm = document.getElementById('modalBtnConfirm');
   const btnResetOutput = document.getElementById('btnResetOutput');
 
+  // Export Modal Elements
+  const btnDownloadOutput = document.getElementById('btnDownloadOutput');
+  const btnDownloadFailed = document.getElementById('btnDownloadFailed');
+  const exportModal = document.getElementById('exportModal');
+  const exportFilename = document.getElementById('exportFilename');
+  const exportFormat = document.getElementById('exportFormat');
+  const exportTarget = document.getElementById('exportTarget');
+  const exportBtnCancel = document.getElementById('exportBtnCancel');
+  const exportBtnConfirm = document.getElementById('exportBtnConfirm');
+
+  function openExportModal(target) {
+    if (exportTarget) exportTarget.value = target;
+    if (exportFilename) {
+      exportFilename.value = target === 'failed' ? 'healow_failed_urls' : 'healow_scraped_output';
+    }
+    if (exportModal) exportModal.classList.add('active');
+  }
+
+  function closeExportModal() {
+    if (exportModal) exportModal.classList.remove('active');
+  }
+
+  if (btnDownloadOutput) {
+    btnDownloadOutput.addEventListener('click', () => openExportModal('output'));
+  }
+
+  if (btnDownloadFailed) {
+    btnDownloadFailed.addEventListener('click', () => openExportModal('failed'));
+  }
+
+  if (exportBtnCancel) {
+    exportBtnCancel.addEventListener('click', closeExportModal);
+  }
+
+  if (exportModal) {
+    exportModal.addEventListener('click', (e) => {
+      if (e.target === exportModal) closeExportModal();
+    });
+  }
+
+  if (exportBtnConfirm) {
+    exportBtnConfirm.addEventListener('click', () => {
+      const target = exportTarget ? exportTarget.value : 'output';
+      const filename = exportFilename ? exportFilename.value.trim() : 'healow_results';
+      const format = exportFormat ? exportFormat.value : 'csv';
+
+      closeExportModal();
+
+      const downloadUrl = `/api/export?target=${encodeURIComponent(target)}&filename=${encodeURIComponent(filename)}&format=${encodeURIComponent(format)}`;
+      addLog(`[Export] Downloading ${filename}.${format} ...`, 'success');
+      
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${filename}.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  }
+
   function openModal() {
     if (confirmModal) confirmModal.classList.add('active');
   }

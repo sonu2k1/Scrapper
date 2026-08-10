@@ -675,6 +675,11 @@ td.empty-msg {
   color: #0284c7;
 }
 
+.modal-icon.success {
+  background: #d1fae5;
+  color: #059669;
+}
+
 .previous-output-box {
   background: #f8fafc;
   border: 1px dashed #cbd5e1;

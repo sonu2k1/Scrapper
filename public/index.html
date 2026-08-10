@@ -89,13 +89,13 @@
         <div class="download-section">
           <h3>Downloads & Reset</h3>
           <div class="download-buttons">
-            <a href="/api/download/output" class="btn btn-success" id="btnDownloadOutput">
+            <button class="btn btn-success" id="btnDownloadOutput">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-              Download output.csv
-            </a>
-            <a href="/api/download/failed" class="btn btn-outline" id="btnDownloadFailed">
-              Download failed.csv
-            </a>
+              Download Output Results
+            </button>
+            <button class="btn btn-outline" id="btnDownloadFailed">
+              Download Failed URLs
+            </button>
             <button class="btn btn-warning" id="btnResetOutput">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               Reset output.csv
@@ -225,6 +225,43 @@
           No, Start Fresh (Clear Output & Find All)
         </button>
         <button class="btn btn-outline" id="btnChoiceCancel">Cancel</button>
+      </div>
+    </div>
+  <!-- Export & Download Options Modal -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal-card">
+      <div class="modal-icon success">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+      </div>
+      <h3 class="modal-title">Export Scraped Results</h3>
+      <p class="modal-desc">Choose a custom filename and format to download your data:</p>
+
+      <div class="form-group" style="text-align: left; margin-bottom: 1rem;">
+        <label for="exportFilename" style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-muted); margin-bottom:0.4rem;">Custom File Name:</label>
+        <input type="text" id="exportFilename" value="healow_scraped_output" placeholder="Enter file name..." style="width:100%; padding:0.6rem 0.8rem; background:#f8fafc; border:1px solid var(--panel-border); border-radius:8px; font-size:0.9rem;" />
+      </div>
+
+      <div class="form-group" style="text-align: left; margin-bottom: 1.5rem;">
+        <label for="exportFormat" style="display:block; font-size:0.85rem; font-weight:600; color:var(--text-muted); margin-bottom:0.4rem;">Select Export Format:</label>
+        <select id="exportFormat" style="width:100%; padding:0.65rem 0.8rem; background:#f8fafc; border:1px solid var(--panel-border); border-radius:8px; font-size:0.9rem; color:var(--text-main); font-weight:500;">
+          <option value="xlsx" selected>Microsoft Excel (.xlsx)</option>
+          <option value="csv">Comma-separated values (.csv)</option>
+          <option value="tsv">Tab-separated values (.tsv)</option>
+          <option value="json">Structured JSON (.json)</option>
+          <option value="html">Web page (.html)</option>
+        </select>
+      </div>
+
+      <input type="hidden" id="exportTarget" value="output" />
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="exportBtnCancel">Cancel</button>
+        <button class="btn btn-success" id="exportBtnConfirm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download File
+        </button>
       </div>
     </div>
   </div>

@@ -4,6 +4,8 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
+import * as XLSX from 'xlsx';
+import csvParser from 'csv-parser';
 import { readInputCsv, getCompletedUrls, CsvWriter } from './csv.js';
 import { initBrowser, scrapeUrl } from './scraper.js';
 import { formatElapsedTime, logProgress } from './utils.js';
@@ -246,23 +248,81 @@ app.post('/api/concurrency', (req, res) => {
   res.json({ success: true, concurrency: activeConcurrency, message: `Concurrency updated to ${activeConcurrency}.` });
 });
 
-// Download Output CSV
-app.get('/api/download/output', (req, res) => {
-  const filePath = path.join(__dirname, 'output.csv');
-  if (fs.existsSync(filePath)) {
-    res.download(filePath, 'output.csv');
-  } else {
-    res.status(404).json({ error: 'output.csv not found' });
-  }
-});
+// Custom Export Endpoint with Filename & Format Selection
+app.get('/api/export', async (req, res) => {
+  try {
+    const target = req.query.target === 'failed' ? 'failed' : 'output';
+    const rawFilename = (req.query.filename || `healow_${target}_results`).trim();
+    const filename = rawFilename.replace(/[^a-zA-Z0-9_-]/g, '_') || `healow_${target}_results`;
+    const format = (req.query.format || 'csv').toLowerCase();
 
-// Download Failed CSV
-app.get('/api/download/failed', (req, res) => {
-  const filePath = path.join(__dirname, 'failed.csv');
-  if (fs.existsSync(filePath)) {
-    res.download(filePath, 'failed.csv');
-  } else {
-    res.status(404).json({ error: 'failed.csv not found' });
+    const csvFilePath = path.join(__dirname, `${target}.csv`);
+    if (!fs.existsSync(csvFilePath)) {
+      return res.status(404).send(`${target}.csv file not found`);
+    }
+
+    if (format === 'csv') {
+      return res.download(csvFilePath, `${filename}.csv`);
+    }
+
+    // Read CSV records for conversion
+    const records = [];
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(csvFilePath)
+        .pipe(csvParser())
+        .on('data', (data) => records.push(data))
+        .on('end', resolve)
+        .on('error', reject);
+    });
+
+    if (format === 'xlsx') {
+      const worksheet = XLSX.utils.json_to_sheet(records);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Scraped Results');
+      const buf = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+      return res.send(buf);
+    } else if (format === 'tsv') {
+      if (records.length === 0) {
+        res.setHeader('Content-Type', 'text/tab-separated-values; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}.tsv"`);
+        return res.send('');
+      }
+      const headers = Object.keys(records[0]);
+      let tsvContent = headers.join('\t') + '\n';
+      records.forEach((row) => {
+        tsvContent += headers.map((h) => (row[h] || '').replace(/\r?\n|\r/g, ' ')).join('\t') + '\n';
+      });
+
+      res.setHeader('Content-Type', 'text/tab-separated-values; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.tsv"`);
+      return res.send(tsvContent);
+    } else if (format === 'json') {
+      const jsonContent = JSON.stringify(records, null, 2);
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.json"`);
+      return res.send(jsonContent);
+    } else if (format === 'html') {
+      let htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${filename}</title><style>table{border-collapse:collapse;width:100%;font-family:sans-serif;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#4f46e5;color:white;}</style></head><body><h2>${filename}</h2><table>`;
+      if (records.length > 0) {
+        const headers = Object.keys(records[0]);
+        htmlContent += '<tr>' + headers.map(h => '<th>' + h + '</th>').join('') + '</tr>';
+        records.forEach(row => {
+          htmlContent += '<tr>' + headers.map(h => '<td>' + (row[h] || '') + '</td>').join('') + '</tr>';
+        });
+      }
+      htmlContent += '</table></body></html>';
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}.html"`);
+      return res.send(htmlContent);
+    } else {
+      res.download(csvFilePath, `${filename}.csv`);
+    }
+  } catch (err) {
+    console.error('Export Error:', err);
+    res.status(500).send(`Export failed: ${err.message}`);
   }
 });
 
