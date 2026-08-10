@@ -23,9 +23,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Global state for scraping job
 let isScraping = false;
+let isPaused = false;
 let shouldStop = false;
+let activeConcurrency = 5;
 let currentJob = {
-  status: 'idle', // 'idle' | 'running' | 'completed' | 'stopped'
+  status: 'idle', // 'idle' | 'running' | 'paused' | 'completed' | 'stopped'
   inputFile: 'ECW-copy - Sheet1.csv',
   outputFile: 'output.csv',
   failedFile: 'failed.csv',
@@ -35,7 +37,9 @@ let currentJob = {
   failedCount: 0,
   startTime: null,
   elapsedTime: '00:00:00',
-  currentResults: []
+  currentResults: [],
+  concurrency: 5,
+  isPaused: false
 };
 
 // SSE Clients list
@@ -140,7 +144,9 @@ app.post('/api/start', async (req, res) => {
 app.post('/api/stop', (req, res) => {
   shouldStop = true;
   isScraping = false;
+  isPaused = false;
   currentJob.status = 'idle';
+  currentJob.isPaused = false;
 
   broadcastSSE({
     type: 'status',
@@ -148,6 +154,52 @@ app.post('/api/stop', (req, res) => {
   });
 
   res.json({ success: true, message: 'Stopping scraper gracefully...' });
+});
+
+// Pause / Resume Scraping Job
+app.post('/api/pause', (req, res) => {
+  if (!isScraping) {
+    return res.status(400).json({ success: false, error: 'No active job running to pause.' });
+  }
+
+  isPaused = !isPaused;
+  currentJob.status = isPaused ? 'paused' : 'running';
+  currentJob.isPaused = isPaused;
+
+  broadcastSSE({
+    type: 'status',
+    job: currentJob
+  });
+
+  broadcastSSE({
+    type: 'log',
+    message: isPaused ? '[Pause] Scraping job paused by user.' : '[Resume] Scraping job resumed by user.'
+  });
+
+  res.json({ success: true, isPaused, message: isPaused ? 'Scraping job paused.' : 'Scraping job resumed.' });
+});
+
+// Update Dynamic Concurrency
+app.post('/api/concurrency', (req, res) => {
+  const newConcurrency = parseInt(req.body.concurrency, 10);
+  if (!newConcurrency || newConcurrency < 1 || newConcurrency > 25) {
+    return res.status(400).json({ success: false, error: 'Concurrency must be between 1 and 25.' });
+  }
+
+  activeConcurrency = newConcurrency;
+  currentJob.concurrency = activeConcurrency;
+
+  broadcastSSE({
+    type: 'status',
+    job: currentJob
+  });
+
+  broadcastSSE({
+    type: 'log',
+    message: `[Setting] Worker concurrency updated to ${activeConcurrency} pages.`
+  });
+
+  res.json({ success: true, concurrency: activeConcurrency, message: `Concurrency updated to ${activeConcurrency}.` });
 });
 
 // Download Output CSV
@@ -243,75 +295,116 @@ async function runScraperProcess(inputFile, concurrencyLimit) {
   const browser = await initBrowser({ headless: true });
 
   let queueIndex = 0;
-  let activeWorkers = 0;
+  activeConcurrency = concurrencyLimit;
+  currentJob.concurrency = activeConcurrency;
 
-  async function worker(workerId) {
-    activeWorkers++;
-    while (queueIndex < remainingUrls.length && !shouldStop) {
-      const currentIndex = queueIndex++;
-      const url = remainingUrls[currentIndex];
-      if (!url) break;
+  const activeWorkerPromises = new Map();
 
-      try {
-        const result = await scrapeUrl(browser, url, { maxRetries: 3 });
+  function launchWorker(workerId) {
+    const p = (async () => {
+      while (queueIndex < remainingUrls.length && !shouldStop) {
+        while (isPaused && !shouldStop) {
+          await new Promise((r) => setTimeout(r, 500));
+        }
 
-        currentJob.processedCount++;
-        if (result.status === 'Success') {
-          currentJob.successCount++;
-          await csvWriter.writeSuccessRecord(result);
-        } else {
+        if (workerId > activeConcurrency) {
+          // Dynamic scale-down: worker gracefully exits
+          break;
+        }
+
+        const currentIndex = queueIndex++;
+        const url = remainingUrls[currentIndex];
+        if (!url) break;
+
+        try {
+          const result = await scrapeUrl(browser, url, { maxRetries: 3 });
+
+          currentJob.processedCount++;
+          if (result.status === 'Success') {
+            currentJob.successCount++;
+            await csvWriter.writeSuccessRecord(result);
+          } else {
+            currentJob.failedCount++;
+            await csvWriter.writeFailedRecord(result);
+          }
+
+          currentJob.elapsedTime = formatElapsedTime(Date.now() - currentJob.startTime);
+          if (currentJob.currentResults.length >= 100) {
+            currentJob.currentResults.shift();
+          }
+          currentJob.currentResults.push(result);
+
+          broadcastSSE({
+            type: 'progress',
+            job: currentJob,
+            latestResult: result
+          });
+        } catch (err) {
+          console.error(`Worker error on URL ${url}:`, err);
+          currentJob.processedCount++;
           currentJob.failedCount++;
-          await csvWriter.writeFailedRecord(result);
+          const failRecord = {
+            url,
+            providerName: '',
+            title: '',
+            practiceName: '',
+            moreProvidersCount: 0,
+            otherProvidersDetails: '',
+            status: 'Failed',
+            error: err.message || String(err)
+          };
+          await csvWriter.writeFailedRecord(failRecord);
+          broadcastSSE({
+            type: 'progress',
+            job: currentJob,
+            latestResult: failRecord
+          });
         }
+      }
+    })().finally(() => {
+      activeWorkerPromises.delete(workerId);
+    });
 
-        currentJob.elapsedTime = formatElapsedTime(Date.now() - currentJob.startTime);
-        if (currentJob.currentResults.length >= 100) {
-          currentJob.currentResults.shift();
+    activeWorkerPromises.set(workerId, p);
+  }
+
+  // Initial worker launch
+  for (let i = 1; i <= activeConcurrency; i++) {
+    launchWorker(i);
+  }
+
+  // Dynamic scaling monitor interval
+  const managerInterval = setInterval(() => {
+    if (!isScraping || shouldStop) {
+      clearInterval(managerInterval);
+      return;
+    }
+
+    if (!isPaused && queueIndex < remainingUrls.length) {
+      let nextId = 1;
+      while (activeWorkerPromises.size < activeConcurrency && queueIndex < remainingUrls.length) {
+        while (activeWorkerPromises.has(nextId)) {
+          nextId++;
         }
-        currentJob.currentResults.push(result);
-
-        broadcastSSE({
-          type: 'progress',
-          job: currentJob,
-          latestResult: result
-        });
-      } catch (err) {
-        console.error(`Worker error on URL ${url}:`, err);
-        currentJob.processedCount++;
-        currentJob.failedCount++;
-        const failRecord = {
-          url,
-          providerName: '',
-          title: '',
-          practiceName: '',
-          moreProvidersCount: 0,
-          otherProvidersDetails: '',
-          status: 'Failed',
-          error: err.message || String(err)
-        };
-        await csvWriter.writeFailedRecord(failRecord);
-        broadcastSSE({
-          type: 'progress',
-          job: currentJob,
-          latestResult: failRecord
-        });
+        launchWorker(nextId);
       }
     }
-    activeWorkers--;
+  }, 500);
+
+  // Wait for all workers to finish
+  while (activeWorkerPromises.size > 0 && !shouldStop) {
+    await new Promise((r) => setTimeout(r, 500));
   }
 
-  const workers = [];
-  for (let i = 0; i < concurrencyLimit; i++) {
-    workers.push(worker(i + 1));
-  }
-
-  await Promise.all(workers);
+  clearInterval(managerInterval);
 
   await csvWriter.flush();
   await browser.close().catch(() => {});
 
   isScraping = false;
+  isPaused = false;
   currentJob.status = shouldStop ? 'stopped' : 'completed';
+  currentJob.isPaused = false;
 
   broadcastSSE({
     type: 'complete',

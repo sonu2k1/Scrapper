@@ -108,11 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const btnPause = document.getElementById('btnPause');
+  const btnPauseText = document.getElementById('btnPauseText');
+
   // Start Scraper
   btnStart.addEventListener('click', async () => {
     const concurrency = concurrencyInput.value || 5;
 
     btnStart.disabled = true;
+    if (btnPause) btnPause.disabled = false;
     btnStop.disabled = false;
 
     try {
@@ -129,18 +133,58 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         addLog(`[Error] ${data.error}`, 'error');
         btnStart.disabled = false;
+        if (btnPause) btnPause.disabled = true;
         btnStop.disabled = true;
       }
     } catch (err) {
       addLog(`[Error] Could not start scraper: ${err.message}`, 'error');
       btnStart.disabled = false;
+      if (btnPause) btnPause.disabled = true;
       btnStop.disabled = true;
     }
   });
 
+  // Pause / Resume Scraper
+  if (btnPause) {
+    btnPause.addEventListener('click', async () => {
+      try {
+        const data = await safeFetchJson('/api/pause', { method: 'POST' });
+        if (data.success) {
+          updateStatusBadge(data.isPaused ? 'paused' : 'running');
+        } else {
+          addLog(`[Error] Pause failed: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        addLog(`[Error] Pause request failed: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Live Concurrency Input Change
+  if (concurrencyInput) {
+    concurrencyInput.addEventListener('change', async () => {
+      const val = parseInt(concurrencyInput.value, 10);
+      if (!val || val < 1) return;
+
+      try {
+        const data = await safeFetchJson('/api/concurrency', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ concurrency: val })
+        });
+        if (!data.success) {
+          addLog(`[Error] Concurrency update failed: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        console.error('Concurrency update error:', err);
+      }
+    });
+  }
+
   // Stop Scraper
   btnStop.addEventListener('click', async () => {
     btnStop.disabled = true;
+    if (btnPause) btnPause.disabled = true;
     addLog('[System] Sending stop signal to scraper workers...', 'info');
 
     try {
@@ -148,6 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       if (data.success) {
         addLog(`[System] ${data.message}`, 'info');
+        updateStatusBadge('idle');
       }
     } catch (err) {
       addLog(`[Error] Stop request failed: ${err.message}`, 'error');
@@ -316,14 +361,24 @@ document.addEventListener('DOMContentLoaded', () => {
     if (status === 'running') {
       statusBadge.classList.add('running');
       statusBadge.textContent = 'Scraping Active';
+      if (btnPauseText) btnPauseText.textContent = 'Pause';
+      if (btnPause) btnPause.disabled = false;
+    } else if (status === 'paused') {
+      statusBadge.classList.add('paused');
+      statusBadge.textContent = 'Paused';
+      if (btnPauseText) btnPauseText.textContent = 'Resume';
+      if (btnPause) btnPause.disabled = false;
     } else if (status === 'stopped') {
       statusBadge.classList.add('stopped');
       statusBadge.textContent = 'Stopped';
+      if (btnPause) btnPause.disabled = true;
     } else if (status === 'completed') {
       statusBadge.classList.add('completed');
       statusBadge.textContent = 'Completed';
+      if (btnPause) btnPause.disabled = true;
     } else {
       statusBadge.textContent = 'Idle';
+      if (btnPause) btnPause.disabled = true;
     }
   }
 
