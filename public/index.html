@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healow Provider Web Scraper Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="background-globes">
+    <div class="globe globe-1"></div>
+    <div class="globe globe-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Healow Provider Scraper</h1>
+          <p class="subtitle">High-performance Playwright Web Extraction Suite</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="status-badge" id="statusBadge">Idle</span>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Controls & Metrics -->
+      <section class="panel control-panel">
+        <h2 class="panel-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          Control Center
+        </h2>
+
+        <!-- Input Source Tabs -->
+        <div class="tabs">
+          <button class="tab-btn active" id="tabUpload">Upload CSV</button>
+          <button class="tab-btn" id="tabPaste">Paste URLs</button>
+        </div>
+
+        <!-- Upload Form -->
+        <form id="uploadForm" class="tab-content active">
+          <div class="file-dropzone" id="dropzone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            <p>Drag & Drop CSV file here or <span>Browse</span></p>
+            <input type="file" id="fileInput" accept=".csv" />
+          </div>
+          <div class="file-name" id="fileName">No file selected</div>
+        </form>
+
+        <!-- Paste Form -->
+        <form id="pasteForm" class="tab-content">
+          <textarea id="urlsTextarea" placeholder="Paste Healow profile URLs here (one per line)..."></textarea>
+        </form>
+
+        <button class="btn btn-secondary" id="btnUploadSubmit">Load Input URLs</button>
+
+        <div class="setting-group">
+          <label for="concurrencyInput">Worker Concurrency (Pages):</label>
+          <input type="number" id="concurrencyInput" value="5" min="1" max="15" />
+        </div>
+
+        <div class="action-buttons">
+          <button class="btn btn-primary" id="btnStart">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Start Scraping
+          </button>
+          <button class="btn btn-danger" id="btnStop" disabled>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
+            Stop
+          </button>
+        </div>
+
+        <div class="download-section">
+          <h3>Downloads</h3>
+          <div class="download-buttons">
+            <a href="/api/download/output" class="btn btn-success" id="btnDownloadOutput">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download output.csv
+            </a>
+            <a href="/api/download/failed" class="btn btn-outline" id="btnDownloadFailed">
+              Download failed.csv
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Metrics & Live Progress -->
+      <section class="panel display-panel">
+        <!-- Stat Cards -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Total URLs</div>
+            <div class="stat-value" id="statTotal">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Processed</div>
+            <div class="stat-value" id="statProcessed">0</div>
+          </div>
+          <div class="stat-card stat-success">
+            <div class="stat-label">Success</div>
+            <div class="stat-value" id="statSuccess">0</div>
+          </div>
+          <div class="stat-card stat-failed">
+            <div class="stat-label">Failed</div>
+            <div class="stat-value" id="statFailed">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Elapsed Time</div>
+            <div class="stat-value" id="statElapsed">00:00:00</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <span>Overall Progress</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+          </div>
+        </div>
+
+        <!-- Live Terminal Log -->
+        <div class="terminal-section">
+          <div class="terminal-header">
+            <span>Terminal Output Log</span>
+            <button id="btnClearLog">Clear Log</button>
+          </div>
+          <div class="terminal-body" id="terminalLog">
+            <div class="log-line info">[System] Web Dashboard initialized. Ready for scraping.</div>
+          </div>
+        </div>
+
+        <!-- Live Results Table -->
+        <div class="results-table-section">
+          <div class="table-header">
+            <h3>Recent Scraped Results</h3>
+            <input type="text" id="tableSearch" placeholder="Search Results..." />
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Provider Name</th>
+                  <th>Title</th>
+                  <th>Practice Name</th>
+                  <th>More Count</th>
+                  <th>Other Providers Details</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="resultsTbody">
+                <tr>
+                  <td colspan="7" class="empty-msg">No results scraped yet. Start job to display data.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
