@@ -83,8 +83,21 @@ app.post('/api/upload', upload.single('csvFile'), async (req, res) => {
     }
 
     const loadedUrls = await readInputCsv(targetPath);
+    isScraping = false;
+    shouldStop = false;
     currentJob.inputFile = targetPath;
     currentJob.totalUrls = loadedUrls.length;
+    currentJob.processedCount = 0;
+    currentJob.successCount = 0;
+    currentJob.failedCount = 0;
+    currentJob.elapsedTime = '00:00:00';
+    currentJob.currentResults = [];
+    currentJob.status = 'idle';
+
+    broadcastSSE({
+      type: 'status',
+      job: currentJob
+    });
 
     res.json({
       success: true,
@@ -125,11 +138,15 @@ app.post('/api/start', async (req, res) => {
 
 // Stop Scraping Job
 app.post('/api/stop', (req, res) => {
-  if (!isScraping) {
-    return res.status(400).json({ success: false, error: 'No active job running.' });
-  }
-
   shouldStop = true;
+  isScraping = false;
+  currentJob.status = 'idle';
+
+  broadcastSSE({
+    type: 'status',
+    job: currentJob
+  });
+
   res.json({ success: true, message: 'Stopping scraper gracefully...' });
 });
 

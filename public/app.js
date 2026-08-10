@@ -89,6 +89,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (data.success) {
         addLog(`[Success] ${data.message}`, 'success');
         statTotal.textContent = data.urlCount;
+        statProcessed.textContent = '0';
+        statSuccess.textContent = '0';
+        statFailed.textContent = '0';
+        progressPercent.textContent = '0%';
+        progressBarFill.style.width = '0%';
+        btnStart.disabled = false;
+        btnStop.disabled = true;
+        updateStatusBadge('idle');
       } else {
         addLog(`[Error] ${data.error}`, 'error');
       }
