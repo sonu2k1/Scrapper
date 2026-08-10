@@ -352,12 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const downloadUrl = `/api/export?target=${encodeURIComponent(target)}&filename=${encodeURIComponent(filename)}&format=${encodeURIComponent(format)}`;
       addLog(`[Export] Downloading ${filename}.${format} ...`, 'success');
       
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = `${filename}.${format}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.location.href = downloadUrl;
     });
   }
 
