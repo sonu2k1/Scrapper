@@ -72,15 +72,15 @@
         </div>
 
         <div class="action-buttons">
-          <button class="btn btn-primary" id="btnStart">
+          <button type="button" class="btn btn-primary" id="btnStart">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             Start Scraping
           </button>
-          <button class="btn btn-warning" id="btnPause" disabled>
+          <button type="button" class="btn btn-warning" id="btnPause" disabled>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
             <span id="btnPauseText">Pause</span>
           </button>
-          <button class="btn btn-danger" id="btnStop" disabled>
+          <button type="button" class="btn btn-danger" id="btnStop" disabled>
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
             Stop
           </button>
@@ -89,14 +89,14 @@
         <div class="download-section">
           <h3>Downloads & Reset</h3>
           <div class="download-buttons">
-            <button class="btn btn-success" id="btnDownloadOutput">
+            <button type="button" class="btn btn-success" id="btnDownloadOutput">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               Download Output Results
             </button>
-            <button class="btn btn-outline" id="btnDownloadFailed">
+            <button type="button" class="btn btn-outline" id="btnDownloadFailed">
               Download Failed URLs
             </button>
-            <button class="btn btn-warning" id="btnResetOutput">
+            <button type="button" class="btn btn-warning" id="btnResetOutput">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
               Reset output.csv
             </button>
@@ -257,8 +257,8 @@
       <input type="hidden" id="exportTarget" value="output" />
 
       <div class="modal-actions">
-        <button class="btn btn-outline" id="exportBtnCancel">Cancel</button>
-        <button class="btn btn-success" id="exportBtnConfirm">
+        <button type="button" class="btn btn-outline" id="exportBtnCancel">Cancel</button>
+        <button type="button" class="btn btn-success" id="exportBtnConfirm">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
           Download File
         </button>
