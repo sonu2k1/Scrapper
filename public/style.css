@@ -384,6 +384,15 @@ textarea#urlsTextarea:focus {
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 }
 
+.btn-warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+}
+
+.btn-warning:hover:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
 .btn-outline {
   background: transparent;
   color: var(--text-muted);

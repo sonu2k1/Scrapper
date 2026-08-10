@@ -153,6 +153,37 @@ app.get('/api/download/failed', (req, res) => {
   }
 });
 
+// Reset output.csv and failed.csv files
+app.post('/api/reset-output', (req, res) => {
+  if (isScraping) {
+    return res.status(400).json({ success: false, error: 'Cannot reset output while scraping job is running.' });
+  }
+
+  try {
+    const outputHeader = 'URL,Provider Name,Title,Practice Name,More Providers Count,Other Providers Details,Status\n';
+    const failedHeader = 'URL,Error,Timestamp\n';
+
+    fs.writeFileSync('output.csv', outputHeader, 'utf8');
+    fs.writeFileSync('failed.csv', failedHeader, 'utf8');
+
+    currentJob.processedCount = 0;
+    currentJob.successCount = 0;
+    currentJob.failedCount = 0;
+    currentJob.elapsedTime = '00:00:00';
+    currentJob.currentResults = [];
+    currentJob.status = 'idle';
+
+    broadcastSSE({
+      type: 'status',
+      job: currentJob
+    });
+
+    res.json({ success: true, message: 'output.csv and failed.csv have been reset successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Status Endpoint
 app.get('/api/status', (req, res) => {
   res.json(currentJob);

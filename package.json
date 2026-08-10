@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "cli": "node main.js"
+    "cli": "node main.js",
+    "reset": "node reset.js"
   },
   "dependencies": {
     "csv-parser": "^3.0.0",

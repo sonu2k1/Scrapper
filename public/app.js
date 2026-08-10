@@ -146,6 +146,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Reset Output CSV
+  const btnResetOutput = document.getElementById('btnResetOutput');
+  if (btnResetOutput) {
+    btnResetOutput.addEventListener('click', async () => {
+      const confirmed = confirm('Are you sure you want to reset output.csv and failed.csv? This will clear previous results so you can start fresh.');
+      if (!confirmed) return;
+
+      btnResetOutput.disabled = true;
+      try {
+        const res = await fetch('/api/reset-output', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          addLog(`[Reset] ${data.message}`, 'success');
+          resultsData = [];
+          renderTable();
+          statProcessed.textContent = '0';
+          statSuccess.textContent = '0';
+          statFailed.textContent = '0';
+          statElapsed.textContent = '00:00:00';
+          progressPercent.textContent = '0%';
+          progressBarFill.style.width = '0%';
+        } else {
+          addLog(`[Error] Reset failed: ${data.error}`, 'error');
+        }
+      } catch (err) {
+        addLog(`[Error] Reset request failed: ${err.message}`, 'error');
+      } finally {
+        btnResetOutput.disabled = false;
+      }
+    });
+  }
+
   // Clear Log
   btnClearLog.addEventListener('click', () => {
     terminalLog.innerHTML = '';
