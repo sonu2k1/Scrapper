@@ -146,6 +146,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  async function safeFetchJson(url, options = {}) {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text();
+      throw new Error(`Server returned HTML response (404/Error). Make sure you are accessing http://localhost:3005`);
+    }
+    return await res.json();
+  }
+
   // Reset Output CSV
   const btnResetOutput = document.getElementById('btnResetOutput');
   if (btnResetOutput) {
@@ -155,8 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       btnResetOutput.disabled = true;
       try {
-        const res = await fetch('/api/reset-output', { method: 'POST' });
-        const data = await res.json();
+        const data = await safeFetchJson('/api/reset-output', { method: 'POST' });
         if (data.success) {
           addLog(`[Reset] ${data.message}`, 'success');
           resultsData = [];
