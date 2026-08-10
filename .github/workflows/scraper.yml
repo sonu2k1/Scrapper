@@ -3,6 +3,10 @@ name: Healow Web Scraper
 on:
   workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
+# Grant write permissions to GITHUB_TOKEN so it can commit and push output.csv
+permissions:
+  contents: write
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -10,12 +14,13 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
@@ -41,6 +46,10 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add output.csv failed.csv
-          git commit -m "Auto-update scraped results from GitHub Actions" || echo "No changes to commit"
-          git push
+          git add output.csv failed.csv || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto-update scraped results from GitHub Actions"
+            git push
+          fi
