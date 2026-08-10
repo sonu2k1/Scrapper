@@ -164,13 +164,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return await res.json();
   }
 
-  // Reset Output CSV
+  // Modal Elements
+  const confirmModal = document.getElementById('confirmModal');
+  const modalBtnCancel = document.getElementById('modalBtnCancel');
+  const modalBtnConfirm = document.getElementById('modalBtnConfirm');
   const btnResetOutput = document.getElementById('btnResetOutput');
-  if (btnResetOutput) {
-    btnResetOutput.addEventListener('click', async () => {
-      const confirmed = confirm('Are you sure you want to reset output.csv and failed.csv? This will clear previous results so you can start fresh.');
-      if (!confirmed) return;
 
+  function openModal() {
+    if (confirmModal) confirmModal.classList.add('active');
+  }
+
+  function closeModal() {
+    if (confirmModal) confirmModal.classList.remove('active');
+  }
+
+  if (modalBtnCancel) {
+    modalBtnCancel.addEventListener('click', closeModal);
+  }
+
+  if (confirmModal) {
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) closeModal();
+    });
+  }
+
+  // Reset Output CSV
+  if (btnResetOutput) {
+    btnResetOutput.addEventListener('click', () => {
+      openModal();
+    });
+  }
+
+  if (modalBtnConfirm) {
+    modalBtnConfirm.addEventListener('click', async () => {
+      closeModal();
       btnResetOutput.disabled = true;
       try {
         const data = await safeFetchJson('/api/reset-output', { method: 'POST' });
