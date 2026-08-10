@@ -1,0 +1,24 @@
+{
+  "name": "healow-playwright-scraper",
+  "version": "1.0.0",
+  "description": "Production-ready Playwright scraper for Healow provider profiles",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "start": "node main.js"
+  },
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "fast-csv": "^5.0.1",
+    "playwright": "^1.49.1"
+  },
+  "keywords": [
+    "playwright",
+    "scraper",
+    "healow",
+    "nodejs",
+    "csv"
+  ],
+  "author": "",
+  "license": "ISC"
+}
