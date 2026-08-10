@@ -666,9 +666,41 @@ td.empty-msg {
   justify-content: center;
 }
 
-.modal-icon.warning {
-  background: #fef3c7;
-  color: #d97706;
+.modal-card-wide {
+  max-width: 520px;
+}
+
+.modal-icon.info {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.previous-output-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.previous-output-box label {
+  display: block;
+  font-size: 0.825rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.previous-output-box input[type="file"] {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  width: 100%;
+}
+
+.modal-actions-stacked {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
 }
 
 .modal-icon svg {

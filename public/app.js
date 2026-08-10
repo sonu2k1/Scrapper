@@ -111,24 +111,52 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnPause = document.getElementById('btnPause');
   const btnPauseText = document.getElementById('btnPauseText');
 
-  // Start Scraper
-  btnStart.addEventListener('click', async () => {
-    const concurrency = concurrencyInput.value || 5;
+  // Resume Modal Elements
+  const resumeModal = document.getElementById('resumeModal');
+  const resumeModalDesc = document.getElementById('resumeModalDesc');
+  const prevOutputFileInput = document.getElementById('prevOutputFileInput');
+  const prevOutputFileName = document.getElementById('prevOutputFileName');
+  const btnChoiceResume = document.getElementById('btnChoiceResume');
+  const btnChoiceFresh = document.getElementById('btnChoiceFresh');
+  const btnChoiceCancel = document.getElementById('btnChoiceCancel');
 
+  function openResumeModal() {
+    if (resumeModal) resumeModal.classList.add('active');
+  }
+
+  function closeResumeModal() {
+    if (resumeModal) resumeModal.classList.remove('active');
+  }
+
+  if (prevOutputFileInput) {
+    prevOutputFileInput.addEventListener('change', () => {
+      if (prevOutputFileInput.files.length > 0) {
+        prevOutputFileName.textContent = prevOutputFileInput.files[0].name;
+      } else {
+        prevOutputFileName.textContent = 'No custom output file selected';
+      }
+    });
+  }
+
+  if (btnChoiceCancel) {
+    btnChoiceCancel.addEventListener('click', closeResumeModal);
+  }
+
+  async function executeStartScraping(concurrency, resumeMode) {
     btnStart.disabled = true;
     if (btnPause) btnPause.disabled = false;
     btnStop.disabled = false;
 
     try {
-      const res = await fetch('/api/start', {
+      const data = await safeFetchJson('/api/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ concurrency })
+        body: JSON.stringify({ concurrency, resumeMode })
       });
-      const data = await res.json();
 
       if (data.success) {
-        addLog(`[Job Started] Scraper running with concurrency ${concurrency}`, 'info');
+        const modeText = resumeMode ? 'Resuming progress (skipping completed)' : 'Starting fresh';
+        addLog(`[Job Started] ${modeText} with concurrency ${concurrency}`, 'info');
         updateStatusBadge('running');
       } else {
         addLog(`[Error] ${data.error}`, 'error');
@@ -142,7 +170,65 @@ document.addEventListener('DOMContentLoaded', () => {
       if (btnPause) btnPause.disabled = true;
       btnStop.disabled = true;
     }
+  }
+
+  // Start Scraper Button Click
+  btnStart.addEventListener('click', async () => {
+    const concurrency = concurrencyInput.value || 5;
+
+    try {
+      const checkData = await safeFetchJson('/api/check-previous');
+      if (checkData.hasPrevious) {
+        if (resumeModalDesc) {
+          resumeModalDesc.innerHTML = `Bhai, pichli baar ka scraped data mila hai (<strong>${checkData.completedCount} completed records</strong> in output.csv). Kya aap wahan se continue karna chahte hain jahan chhoda tha?`;
+        }
+        openResumeModal();
+      } else {
+        await executeStartScraping(concurrency, false);
+      }
+    } catch (err) {
+      await executeStartScraping(concurrency, false);
+    }
   });
+
+  // Modal Resume Choice Click
+  if (btnChoiceResume) {
+    btnChoiceResume.addEventListener('click', async () => {
+      closeResumeModal();
+      const concurrency = concurrencyInput.value || 5;
+
+      if (prevOutputFileInput && prevOutputFileInput.files.length > 0) {
+        const formData = new FormData();
+        formData.append('outputFile', prevOutputFileInput.files[0]);
+        btnChoiceResume.disabled = true;
+        try {
+          const uploadRes = await fetch('/api/upload-previous-output', {
+            method: 'POST',
+            body: formData
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.success) {
+            addLog(`[Output Loaded] ${uploadData.message}`, 'success');
+          }
+        } catch (e) {
+          addLog(`[Warning] Could not upload custom output file: ${e.message}`, 'error');
+        } finally {
+          btnChoiceResume.disabled = false;
+        }
+      }
+
+      await executeStartScraping(concurrency, true);
+    });
+  }
+
+  // Modal Fresh Choice Click
+  if (btnChoiceFresh) {
+    btnChoiceFresh.addEventListener('click', async () => {
+      closeResumeModal();
+      const concurrency = concurrencyInput.value || 5;
+      await executeStartScraping(concurrency, false);
+    });
+  }
 
   // Pause / Resume Scraper
   if (btnPause) {

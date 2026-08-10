@@ -113,6 +113,40 @@ app.post('/api/upload', upload.single('csvFile'), async (req, res) => {
   }
 });
 
+// Check if previous output data exists
+app.get('/api/check-previous', async (req, res) => {
+  try {
+    const completedSet = await getCompletedUrls('output.csv');
+    res.json({
+      hasPrevious: completedSet.size > 0,
+      completedCount: completedSet.size
+    });
+  } catch (err) {
+    res.json({ hasPrevious: false, completedCount: 0 });
+  }
+});
+
+// Upload custom previous output.csv
+app.post('/api/upload-previous-output', upload.single('outputFile'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No output CSV file uploaded.' });
+    }
+    const content = fs.readFileSync(req.file.path, 'utf8');
+    fs.writeFileSync('output.csv', content, 'utf8');
+    try { fs.unlinkSync(req.file.path); } catch (_) {}
+
+    const completedSet = await getCompletedUrls('output.csv');
+    res.json({
+      success: true,
+      completedCount: completedSet.size,
+      message: `Loaded previous output file with ${completedSet.size} completed records.`
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Start Scraping Job
 app.post('/api/start', async (req, res) => {
   if (isScraping) {
@@ -120,9 +154,19 @@ app.post('/api/start', async (req, res) => {
   }
 
   const concurrency = parseInt(req.body.concurrency || 5, 10);
+  const resumeMode = req.body.resumeMode !== false; // Default true unless false
   const inputFile = currentJob.inputFile || (fs.existsSync('ECW-copy - Sheet1.csv') ? 'ECW-copy - Sheet1.csv' : 'input.csv');
 
+  if (!resumeMode) {
+    // Clear previous output files for a fresh start
+    const outputHeader = 'URL,Provider Name,Title,Practice Name,More Providers Count,Other Providers Details,Status\n';
+    const failedHeader = 'URL,Error,Timestamp\n';
+    fs.writeFileSync('output.csv', outputHeader, 'utf8');
+    fs.writeFileSync('failed.csv', failedHeader, 'utf8');
+  }
+
   isScraping = true;
+  isPaused = false;
   shouldStop = false;
   currentJob.status = 'running';
   currentJob.startTime = Date.now();
@@ -131,7 +175,7 @@ app.post('/api/start', async (req, res) => {
   currentJob.failedCount = 0;
   currentJob.currentResults = [];
 
-  res.json({ success: true, message: 'Scraper execution started!' });
+  res.json({ success: true, message: resumeMode ? 'Resuming scraper execution...' : 'Starting fresh scraping execution...' });
 
   // Run scraper process asynchronously
   runScraperProcess(inputFile, concurrency).catch((err) => {
