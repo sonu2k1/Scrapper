@@ -1,0 +1,46 @@
+name: Healow Web Scraper
+
+on:
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Playwright Chromium with OS Dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Scraper Engine
+        run: npm start
+
+      - name: Upload Scraped Results CSV as Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: healow-scraped-data
+          path: |
+            output.csv
+            failed.csv
+          retention-days: 30
+
+      - name: Auto Commit Results to Repository
+        if: always()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output.csv failed.csv
+          git commit -m "Auto-update scraped results from GitHub Actions" || echo "No changes to commit"
+          git push
