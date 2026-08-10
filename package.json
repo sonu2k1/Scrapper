@@ -13,7 +13,7 @@
     "express": "^5.2.1",
     "fast-csv": "^5.0.1",
     "multer": "^2.2.0",
-    "playwright": "^1.49.1"
+    "playwright": "1.49.1"
   },
   "keywords": [
     "playwright",
